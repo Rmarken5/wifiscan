@@ -7,11 +7,14 @@ import (
 	"strings"
 )
 
+const ESSIDLabel = "ESSID:"
+
 // Wifi is the data structure containing the basic
 // elements
 type Wifi struct {
-	SSID string `json:"ssid"`
-	RSSI int    `json:"rssi"`
+	ESSID string `json:"essid"`
+	SSID  string `json:"ssid"`
+	RSSI  int    `json:"rssi"`
 }
 
 // Parse will parse wifi output and extract the access point
@@ -92,8 +95,8 @@ func parseLinux(output string) (wifis []Wifi, err error) {
 	wifis = []Wifi{}
 	for scanner.Scan() {
 		line := scanner.Text()
-		if w.SSID == "" {
-			if strings.Contains(line, "Address") {
+		if strings.Contains(line, "Address") {
+			if w.SSID == "" {
 				fs := strings.Fields(line)
 				if len(fs) == 5 {
 					w.SSID = strings.ToLower(fs[4])
@@ -101,8 +104,14 @@ func parseLinux(output string) (wifis []Wifi, err error) {
 			} else {
 				continue
 			}
-		} else {
-			if strings.Contains(line, "Signal level=") {
+		} else if strings.Contains(line, ESSIDLabel) {
+			if w.ESSID == "" {
+				w.ESSID = line[strings.Index(line, ESSIDLabel)+len(ESSIDLabel):]
+			} else {
+				w.ESSID = "unknown"
+			}
+		} else if strings.Contains(line, "Signal level=") {
+			if w.RSSI == 0 {
 				level, errParse := strconv.Atoi(strings.Split(strings.Split(strings.Split(line, "level=")[1], "/")[0], " dB")[0])
 				if errParse != nil {
 					continue
@@ -113,7 +122,7 @@ func parseLinux(output string) (wifis []Wifi, err error) {
 				w.RSSI = level
 			}
 		}
-		if w.SSID != "" && w.RSSI != 0 {
+		if w.SSID != "" && w.RSSI != 0 && w.ESSID != "" {
 			wifis = append(wifis, w)
 			w = Wifi{}
 		}

@@ -85,6 +85,7 @@ func scan(wifiInterface ...string) (wifilist []Wifi, err error) {
 		log.Debug(stdout)
 		return
 	}
+	log.Debugf("%s\n", stdout)
 	wifilist, err = Parse(stdout, os)
 	return
 }
